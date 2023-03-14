@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+
+        <table class="container">
+            <thead>
+                <tr>
+                         <th scope="col">#</th>
+                          <th scope="col">text</th>
+                          <th scope="col">country</th>
+                          <th scope="col">date</th>
+                          <th scope="col">capital_City</th>
+                          <th scope="col">flag</th>
+
+
+
+                </tr>
+            </thead>
+            <tbody>
+
+                    {% for sb  in sb_list %}
+
+                 <tr>
+
+                 <th scope="row">{{ sb.id }}</th>
+                  <td> {{ sb.Text }} </td>
+                  <td>{{ sb.country }}</td>
+                  <td>{{ sb.date }}</td>
+                     <td>{{ sb.capital_city }}</td>
+                     <td>{{ sb.flag }}</td>
+                </tr>
+
+
+                    {% endfor %}
+            </tbody>
+        </table>
+
+  </tbody>
+</table>
+
+
+</body>
+</html>
+
