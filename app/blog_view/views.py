@@ -112,17 +112,6 @@ def delete_toast(id):
 
 
 
-#     params = request.get_json()
-#     delId = params['id']
-#     my_data = Blog.query.get(delId)
-#
-#     db.session.delete(my_data)
-#     db.session.commit()
-#     print(delId)
-#     return jsonify({
-#         "id": delId
-#     })
-#
 #
 #
 #
