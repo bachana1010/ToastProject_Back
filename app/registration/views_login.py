@@ -42,7 +42,7 @@ def token_required(f):
             return jsonify({'message': 'token is missiiiiing'}), 403
 
         # try:
-        data = jwt.decode(token, SECRET_KEY)
+        data = jwt.decode(token, SECRET_KEY,algorithms=['HS256'])
         # except:
         #     return jsonify({'message': 'token is invaliiiiiiiid!'}), 403
         return f(data,*args, **kwargs)
@@ -75,17 +75,20 @@ def login():
 
     if user is not None and user.check_password(params['password']):
 
-         token = jwt.encode({"user":{
+         token = jwt.encode({
+             "sub": str(user.id),
+             "user":{
              "id": user.id,
              "username": user.username,
              "email": user.email}, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=50)}, SECRET_KEY)
 
 
          return jsonify({
-             'token': token.decode('utf-8'),
+             'token': token,
              'user': {
                  'username': user.username,
-                 'email': user.email
+                 'email': user.email,
+                 'id': user.id
              }
         })
 

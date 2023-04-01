@@ -2,7 +2,8 @@ from flask import Flask
 from flask_cors import CORS
 from app.log_in import login_manager
 
-from app.extentions import db
+from app.extentions import db, jwt
+from flask_jwt_extended import JWTManager
 
 
 def create_app(config_file='config.py'):
@@ -13,7 +14,7 @@ def create_app(config_file='config.py'):
     register_extension(app)
     register_blouprint(app)
     login_manager.init_app(app)
-
+    jwt.init_app(app)  # Initialize flask_jwt_extended
 
     return app
 
