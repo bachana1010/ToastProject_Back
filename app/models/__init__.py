@@ -3,6 +3,10 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.log_in import login_manager
 from sqlalchemy.dialects.sqlite import *
+from datetime import datetime
+from flask import session
+
+
 from sqlalchemy import create_engine
 
 # DB Model
@@ -86,6 +90,8 @@ class Toast(db.Model, BaseModel):
     img = db.Column(db.LargeBinary())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
+    comments = db.relationship('Comment', backref='toast', lazy=True)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -100,6 +106,24 @@ class Toast(db.Model, BaseModel):
         db.session.delete(self)
         db.session.commit()
 
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    content = db.Column(db.String(512))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    toast_id = db.Column(db.Integer, db.ForeignKey("Toast.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    user = db.relationship("User")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "content": self.content,
+            "timestamp": self.timestamp.isoformat(),
+            "toast_id": self.toast_id,
+            "user_id": self.user_id,
+            'user_name': self.user.username if self.user else 'User'
+        }
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
