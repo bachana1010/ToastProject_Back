@@ -77,9 +77,14 @@ def get_toast_list():
     toasts = []
     for toast in toast_info:
         toast_dict = toast.to_dict()
-        # Encode the `photo` field as base64
-        if toast_dict.get('img'):
+        if toast_dict['img'] and isinstance(toast_dict['img'], bytes):
             toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
+
+    # for toast in toast_info:
+    #     toast_dict = toast.to_dict()
+    #     # Encode the `photo` field as base64
+    #     if toast_dict.get('img'):
+    #         toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
         toasts.append(toast_dict)
 
     # Return the list of objects as JSON
@@ -88,9 +93,28 @@ def get_toast_list():
 #
 
 
+@toast_blueprint.route('/detail/id/<int:id>', methods=['GET', 'POST'])
+def detail_page(id):
+    toast = Toast.query.get(id)
+
+    if toast:
+        # Increment views count
+        toast.views += 1
+        db.session.commit()
+
+        # Return the toast details
+        return jsonify({"success": True, "data": toast.to_dict()})
+    else:
+        return jsonify({"success": False, "message": "Toast not found"}), 404
+
+
+
+
 @toast_blueprint.route('/MyToast', methods=['GET', 'POST'])
 @jwt_required()
 def get_my_toast():
+    print("get_toast_list() called")
+
     user_id = get_jwt_identity()
     authorized_toasts = Toast.query.filter_by(user_id=user_id)
 
@@ -208,3 +232,22 @@ def get_comments(toast_id):
 
     comments = [comment.to_dict() for comment in toast.comments]
     return jsonify(comments)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@toast_blueprint.route('/toasts/<int:toast_id>/view', methods=['POST', 'GET'])
+def increment_views(toast_id):
+
+
+        return jsonify({"success": True, "views": toast.views})

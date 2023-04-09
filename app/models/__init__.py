@@ -5,6 +5,8 @@ from app.log_in import login_manager
 from sqlalchemy.dialects.sqlite import *
 from datetime import datetime
 from flask import session
+import base64
+
 
 
 from sqlalchemy import create_engine
@@ -89,17 +91,19 @@ class Toast(db.Model, BaseModel):
     input = db.Column(JSON)  # An array of strings
     img = db.Column(db.LargeBinary())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
     comments = db.relationship('Comment', backref='toast', lazy=True)
+    views = db.Column(db.Integer, default=0)
 
     def to_dict(self):
+        img_base64 = base64.b64encode(self.img).decode('utf-8') if self.img else None
         return {
             'id': self.id,
             'title': self.title,
             'content': self.content,
             'input': self.input,
-            'img': self.img,
-            'user_id': self.user_id
+            'img': img_base64,  # Convert the image to a base64 encoded string
+            'user_id': self.user_id,
+            'views': self.views
         }
 
     def delete1(self):
@@ -127,4 +131,3 @@ class Comment(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)
-
