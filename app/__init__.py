@@ -32,4 +32,7 @@ def register_blouprint(app):
     from app.registration.views_login import user_blueprint
     app.register_blueprint(user_blueprint)
 
+    from app.generation_qr.qr import qr_blouprint
+    app.register_blueprint(qr_blouprint)
+
 
