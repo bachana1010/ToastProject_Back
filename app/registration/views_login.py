@@ -15,13 +15,26 @@ user_blueprint = Blueprint('user', __name__, template_folder="templates", static
 def registration():
     if request.method == "POST":
         params = request.get_json()
+        email = params['email']
+        username = params['username']
+
+        # Check if the email or username is already registered
+        existing_email = User.query.filter_by(email=email).first()
+        existing_username = User.query.filter_by(username=username).first()
+
+        if existing_email:
+            # Return an error message
+            return make_response(jsonify({"error": "Email already registered"}), 400)
+
+        if existing_username:
+            # Return an error message
+            return make_response(jsonify({"error": "Username already taken"}), 400)
+
         user = User(
-            username=params['username'],
-            email=params['email'],
+            username=username,
+            email=email,
             password=params['password']
-
         )
-
 
         db.session.add(user)
         try:
@@ -30,7 +43,6 @@ def registration():
             db.session.rollback()
 
     return jsonify()
-
 
 
 def token_required(f):
@@ -100,8 +112,8 @@ def login():
 
 
 
-@user_blueprint.route('/update', methods=['GET', 'POST', 'UPDATE', 'PUT'])
-def update():
+@user_blueprint.route('/updateUser', methods=['GET', 'POST', 'UPDATE', 'PUT'])
+def updateUser():
     paramsFromFront = request.get_json()
     token = request.headers.get('Authorization')
 

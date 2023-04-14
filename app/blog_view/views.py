@@ -3,10 +3,14 @@ from sqlalchemy import create_engine
 
 from flask import Blueprint, render_template, flash, request, jsonify, session,redirect, url_for,abort,make_response, sessions
 from app import db
-from app.models import Toast, User, Comment
+from app.models import Toast, User, Comment, UserLikeDislike
 import jwt as pyjwt
-from app.config import SECRET_KEY
+from jwt import ExpiredSignatureError
+from jwt import ExpiredSignatureError as JWTExpiredSignatureError
 
+from app.config import SECRET_KEY
+from flask_jwt_extended import jwt_required
+from werkzeug.utils import secure_filename
 
 import base64
 import re
@@ -72,7 +76,9 @@ def get_toast_list():
 
     offset = (page - 1) * per_page
     limit = per_page
-    toast_info = Toast.query.offset(offset).limit(limit).all()
+    # toast_info = Toast.query.offset(offset).limit(limit).all()
+    toast_info = Toast.query.order_by(Toast.id.desc()).offset(offset).limit(limit).all()
+
     #
     toasts = []
     for toast in toast_info:
@@ -80,11 +86,6 @@ def get_toast_list():
         if toast_dict['img'] and isinstance(toast_dict['img'], bytes):
             toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
 
-    # for toast in toast_info:
-    #     toast_dict = toast.to_dict()
-    #     # Encode the `photo` field as base64
-    #     if toast_dict.get('img'):
-    #         toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
         toasts.append(toast_dict)
 
     # Return the list of objects as JSON
@@ -130,9 +131,16 @@ def get_my_toast():
     toasts = []
     for toast in toast_info:
         toast_dict = toast.to_dict()
+
         # Encode the `photo` field as base64
         if toast_dict.get('img'):
-            toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
+            try:
+                # Check if the `img` field is already a base64 encoded string
+                base64.b64decode(toast_dict['img'], validate=True)
+            except binascii.Error:
+                # If not, then encode it as base64
+                toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
+
         toasts.append(toast_dict)
 
     # Return the list of objects as JSON
@@ -234,20 +242,139 @@ def get_comments(toast_id):
     return jsonify(comments)
 
 
+@toast_blueprint.route('/toggle-like/<int:content_id>', methods=['POST'])
+def toggle_like_content(content_id):
+    token = request.headers.get('Authorization')
+    print("Received token:", token)  # Add this line
+
+    if token:
+        user_id = decode_token(token.split(' ')[1])
+        print("Decoded user ID:", user_id)  # Add this line
+
+        if user_id is None:
+            return jsonify({"error": "Invalid token."}), 401
+        content = Toast.query.get_or_404(content_id)
+
+        user_like_dislike = UserLikeDislike.query.filter_by(user_id=user_id, content_id=content_id).first()
+
+        if user_like_dislike:
+            if user_like_dislike.status == 'like':
+                content.likes -= 1
+                db.session.delete(user_like_dislike)
+            else:
+                content.likes += 1
+                content.dislikes -= 1
+                user_like_dislike.status = 'like'
+            db.session.commit()
+        else:
+            new_user_like_dislike = UserLikeDislike(user_id=user_id, content_id=content_id, status='like')
+            content.likes += 1
+            db.session.add(new_user_like_dislike)
+            db.session.commit()
+
+        return jsonify({'likes': content.likes, 'dislikes': content.dislikes,
+                        'status': user_like_dislike.status if user_like_dislike else 'none'})
+    return jsonify({"error": "Invalid token."}), 401
+
+@toast_blueprint.route('/toggle-dislike/<int:content_id>', methods=['POST'])
+def toggle_dislike_content(content_id):
 
 
+    token = request.headers.get('Authorization')
+    print("Received token:", token)  # Add this line
+
+    if token:
+        user_id = decode_token(token.split(' ')[1])
+        print("Decoded user ID:", user_id)  # Add this line
+
+        if user_id is None:
+            return jsonify({"error": "Invalid token."}), 401
+        content = Toast.query.get_or_404(content_id)
+
+        user_like_dislike = UserLikeDislike.query.filter_by(user_id=user_id, content_id=content_id).first()
+
+        if user_like_dislike:
+            if user_like_dislike.status == 'dislike':
+                content.dislikes -= 1
+                db.session.delete(user_like_dislike)
+            else:
+                content.dislikes += 1
+                content.likes -= 1
+                user_like_dislike.status = 'dislike'
+            db.session.commit()
+        else:
+            new_user_like_dislike = UserLikeDislike(user_id=user_id, content_id=content_id, status='dislike')
+            content.dislikes += 1
+            db.session.add(new_user_like_dislike)
+            db.session.commit()
+
+        return jsonify({'likes': content.likes, 'dislikes': content.dislikes,
+                        'status': user_like_dislike.status if user_like_dislike else 'none'})
+    return jsonify({"error": "Invalid token."}), 401
 
 
+#
+@toast_blueprint.route('/update/<int:id>', methods=['POST'])
+@jwt_required()
+def update_toast(id):
+    # Get the Toast object using the provided id (the toast_id, not user_id)
+    toastForUpdate = Toast.query.get(id)
+
+    # Get chips from the front
+    chips = json.loads(request.form.get('fruits'))
+    array_input = json.dumps(chips)
+
+    # Get data from the front
+    data = json.loads(request.form.get('data'))
+
+    # # Get the image file from the front
+    # file = request.files['image']
+    # binary_data = file.read()
+
+    # Check if the toast exists
+    if toastForUpdate:
+        # Get user_id from JWT token
+        user_id = get_jwt_identity()
+
+        # Check if the user is the owner of the toast
+        # Compare the JWT user_id with the user_id associated with the Toast object
+        if toastForUpdate.user_id == int(user_id):
+            # The user is authorized to update the Toast
+
+            # Update the Toast object with the new data
+            toastForUpdate.title = data["title"]
+            toastForUpdate.content = data["content"]
+            toastForUpdate.input = array_input
+            # Check if the 'image' key is present in the request.files dictionary
+            if 'image' in request.files:
+                # Get the image file from the front
+                file = request.files['image']
+                binary_data = file.read()
+                # Update the image only if it's not None
+                if binary_data:
+                    toastForUpdate.img = binary_data
+
+            # Save the updated Toast object to the database
+            db.session.commit()
+
+            return jsonify({'message': 'Toast updated successfully'})
+        else:
+            # The user is not authorized to update the Toast
+            return jsonify({'message': 'Unauthorized'}), 401
+    else:
+        # The Toast object was not found
+        return jsonify({'message': 'Toast not found'}), 404
 
 
+def decode_token(token):
+        if token:
+            try:
+                # Decode the JWT token and get the user's ID
+                payload = pyjwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                print("Decoded payload:", payload)  # Add this line
+                return payload["user"]["id"]
 
-
-
-
-
-
-@toast_blueprint.route('/toasts/<int:toast_id>/view', methods=['POST', 'GET'])
-def increment_views(toast_id):
-
-
-        return jsonify({"success": True, "views": toast.views})
+            except pyjwt.ExpiredSignatureError:
+                return None
+            except pyjwt.InvalidTokenError:
+                return None

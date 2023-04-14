@@ -93,6 +93,8 @@ class Toast(db.Model, BaseModel):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     comments = db.relationship('Comment', backref='toast', lazy=True)
     views = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)  # Add this line
+    dislikes = db.Column(db.Integer, default=0)  # Add this line
 
     def to_dict(self):
         img_base64 = base64.b64encode(self.img).decode('utf-8') if self.img else None
@@ -103,12 +105,21 @@ class Toast(db.Model, BaseModel):
             'input': self.input,
             'img': img_base64,  # Convert the image to a base64 encoded string
             'user_id': self.user_id,
-            'views': self.views
+            'views': self.views,
+            'likes': self.likes,
+            'dislikes': self.dislikes
         }
 
     def delete1(self):
         db.session.delete(self)
         db.session.commit()
+
+class UserLikeDislike(db.Model):
+    __tablename__ = "user_like_dislike"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    content_id = db.Column(db.Integer, db.ForeignKey('Toast.id'))
+    status = db.Column(db.String(10))  # 'like' or 'dislike'
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
