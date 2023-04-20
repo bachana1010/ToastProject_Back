@@ -139,6 +139,14 @@ class Comment(db.Model):
             "user_id": self.user_id,
             'user_name': self.user.username if self.user else 'User'
         }
+
+class todo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    todo = db.Column(db.String(512))
+    status = db.Column(db.String(15),default='incomplete')
+
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id)

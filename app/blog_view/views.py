@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 
 from flask import Blueprint, render_template, flash, request, jsonify, session,redirect, url_for,abort,make_response, sessions
 from app import db
-from app.models import Toast, User, Comment, UserLikeDislike
+from app.models import Toast, User, Comment, UserLikeDislike,todo
 import jwt as pyjwt
 from jwt import ExpiredSignatureError
 from jwt import ExpiredSignatureError as JWTExpiredSignatureError
@@ -83,6 +83,8 @@ def get_toast_list():
     toasts = []
     for toast in toast_info:
         toast_dict = toast.to_dict()
+        toast_dict['author'] = toast.to_dict()  # This line adds the author's information to the toast_dict
+
         if toast_dict['img'] and isinstance(toast_dict['img'], bytes):
             toast_dict['img'] = base64.b64encode(toast_dict['img']).decode('utf-8')
 
@@ -115,8 +117,11 @@ def detail_page(id):
 @jwt_required()
 def get_my_toast():
     print("get_toast_list() called")
+    print("get_toast_list() called")
 
     user_id = get_jwt_identity()
+    print(f"User ID: {user_id}")  # Add this line to print the user_id value
+
     authorized_toasts = Toast.query.filter_by(user_id=user_id)
 
     page = request.args.get('page', 1, type=int)
@@ -143,16 +148,16 @@ def get_my_toast():
 
         toasts.append(toast_dict)
 
+    total_views = sum([toast['views'] for toast in toasts])
+    total_likes = sum([toast['likes'] for toast in toasts])
+    number_of_toasts = authorized_toasts.count()  # Add this line
+
     # Return the list of objects as JSON
     return jsonify({'data': toasts,
-                    'total_pages': data.pages})
-
-
-
-
-
-
-
+                    'total_pages': data.pages,
+                    'total_views': total_views,
+                    'total_likes': total_likes,
+                    'number_of_toasts': number_of_toasts})
 
 
 
@@ -378,3 +383,5 @@ def decode_token(token):
                 return None
             except pyjwt.InvalidTokenError:
                 return None
+
+
