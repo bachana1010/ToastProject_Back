@@ -2,7 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from app.log_in import login_manager
 
-from app.extentions import db, jwt
+from app.extentions import db, jwt, migrate
 from flask_jwt_extended import JWTManager
 
 
@@ -22,6 +22,7 @@ login_manager.login_view = "user.login"
 
 def register_extension(app):
     db.init_app(app)
+    migrate.init_app(app, db)
 
 
 def register_blouprint(app):
