@@ -137,7 +137,7 @@ def get_my_toast():
     for toast in toast_info:
         toast_dict = toast.to_dict()
 
-        # Encode the `photo` field as base64
+        # Encode the `photooo` field as base64
         if toast_dict.get('img'):
             try:
                 # Check if the `img` field is already a base64 encoded string
