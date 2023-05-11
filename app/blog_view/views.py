@@ -112,27 +112,25 @@ def detail_page(id):
 
 
 
-
 @toast_blueprint.route('/MyToast', methods=['GET', 'POST'])
 @jwt_required()
 def get_my_toast():
     print("get_toast_list() called")
-    print("get_toast_list() called")
 
     user_id = get_jwt_identity()
-    print(f"User ID: {user_id}")  # Add this line to print the user_id value
+    print(f"User ID: {user_id}")
 
     authorized_toasts = Toast.query.filter_by(user_id=user_id)
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
 
-    # data = authorized_toasts.paginate(page=page, per_page=per_page)
-    data = authorized_toasts.limit(per_page).offset((page - 1) * per_page).all()
+    # calculate the total number of pages
+    total_items = authorized_toasts.count()
+    total_pages = (total_items - 1) // per_page + 1
 
-    offset = (page - 1) * per_page
-    limit = per_page
-    toast_info = authorized_toasts.order_by(Toast.id.desc()).offset(offset).limit(limit).all()
+    # get the toasts for the current page
+    toast_info = authorized_toasts.order_by(Toast.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
     toasts = []
     for toast in toast_info:
@@ -151,15 +149,13 @@ def get_my_toast():
 
     total_views = sum([toast['views'] for toast in toasts])
     total_likes = sum([toast['likes'] for toast in toasts])
-    number_of_toasts = authorized_toasts.count()  # Add this line
 
     # Return the list of objects as JSON
     return jsonify({'data': toasts,
-                    'total_pages': data.pages,
+                    'total_pages': total_pages,
                     'total_views': total_views,
                     'total_likes': total_likes,
-                    'number_of_toasts': number_of_toasts})
-
+                    'number_of_toasts': total_items})
 
 
 
