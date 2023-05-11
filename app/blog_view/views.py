@@ -127,7 +127,8 @@ def get_my_toast():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
 
-    data = authorized_toasts.paginate(page=page, per_page=per_page)
+    # data = authorized_toasts.paginate(page=page, per_page=per_page)
+    data = authorized_toasts.limit(per_page).offset((page - 1) * per_page).all()
 
     offset = (page - 1) * per_page
     limit = per_page
